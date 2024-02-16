@@ -1,0 +1,63 @@
+#deploying mern application using Ansible
+- hosts: Demo
+  user: root
+  gather_facts: 'yes'
+  become: 'yes'
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: 'yes'
+    - name: Ansible shell module multiple commands
+      shell: 'curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -'
+    - name: Install Node.js dependencies
+      apt:
+        name: '{{ item }}'
+        state: present
+      loop:
+        - curl
+        - software-properties-common
+        - nodejs
+        - wget
+        - curl
+    - name: Discard local modifications in the destination directory
+      command: git reset --hard HEAD
+      args:
+        chdir: /home/ubuntu/mern/
+      ignore_errors: yes
+    - name: Clone MERN application repository
+      git:
+        repo: 'https://github.com/UnpredictablePrashant/TravelMemory.git'
+        dest: /home/ubuntu/mern
+    - name: Create .env file with MongoDB URI and port
+      ansible.builtin.lineinfile:
+        path: /home/ubuntu/mern/backend/.env
+        line: MONGO_URI= 'mongodb+srv://mohankrishna19:*****@cluster1.zdinkmb.mongodb.net/Mern'
+        create: 'yes'
+    - name: Add port to .env file
+      ansible.builtin.lineinfile:
+        path: /home/ubuntu/mern/backend/.env
+        line: PORT=3000
+        insertafter: MONGO_URI='mongodb+srv://mohankrishna19:*****@cluster1.zdinkmb.mongodb.net/Mern'
+    - name: Install dependencies for MERN application backend
+      command: npm install
+      args:
+        chdir: /home/ubuntu/mern/backend
+    - name: Run the MERN application backend
+      command: node index.js
+      args:
+        chdir: /home/ubuntu/mern/backend/
+    - name: Install dependencies for MERN application frontend
+      command: npm install
+      args:
+        chdir: /home/ubuntu/mern/frontend
+
+    - name: Configure baseUrl in url.js
+      ansible.builtin.replace:
+        path: /home/ubuntu/mern/frontend/src/url.js
+        regexp: 'export const baseUrl = .*'
+        replace: 'export const baseUrl = "http://localhost:3001"'
+
+    - name: Run the MERN application frontend
+      command: npm start
+      args:
+        chdir: /home/ubuntu/mern/frontend/
