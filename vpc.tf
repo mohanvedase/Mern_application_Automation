@@ -149,6 +149,53 @@ resource "aws_instance" "webserver" {
   key_name = "terraform"
 }
 
+# Creation of IAM policies
+
+data "aws_iam_policy_document" "loadbalancer" {
+  statement {
+    sid       = "Statement1"
+    effect    = "Allow"
+    actions   = [
+      "elasticloadbalancing:Describe*",
+      "elasticloadbalancing:Get*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "Statement2"
+    effect    = "Allow"
+    actions   = [
+      "ec2:DescribeInstances",
+      "ec2:DescribeClassicLinkInstances",
+      "ec2:DescribeSecurityGroups",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "Statement3"
+    effect    = "Allow"
+    actions   = ["arc-zonal-shift:GetManagedResource"]
+    resources = ["arn:aws:elasticloadbalancing:*:*:loadbalancer/*"]
+  }
+
+  statement {
+    sid       = "Statement4"
+    effect    = "Allow"
+    actions   = [
+      "arc-zonal-shift:ListManagedResources",
+      "arc-zonal-shift:ListZonalShifts",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "loadbalancer_policy" {
+  name   = "load_balancer_mern"
+  policy = data.aws_iam_policy_document.loadbalancer.json
+}
+
 resource "aws_instance" "database" {
   ami             = "ami-03f4878755434977f"
   instance_type   = "t2.micro"
